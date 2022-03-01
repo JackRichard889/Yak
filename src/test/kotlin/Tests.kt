@@ -1,28 +1,40 @@
 import dev.jackrichard.yak.Yak
+import dev.jackrichard.yak.net.ClientContext
 import dev.jackrichard.yak.packets.Packets
+import dev.jackrichard.yak.packets.types.boolean
+import dev.jackrichard.yak.packets.types.char
+import dev.jackrichard.yak.packets.types.int
+import dev.jackrichard.yak.packets.types.string
+import kotlin.concurrent.thread
+
+var ClientContext.name: String
+    get() = ""
+    set(value) {}
 
 fun main() {
     Yak.config {
         register {
-            id = 1001
+            id = 101
 
-            val name = string(10)
-            val age = int()
-            val terms = boolean()
-            val gender = char()
+            val name = string(50)
 
-            handle { data, out, log, packet ->
-                val dat = Packets.find(1002).encode(packet[name]!!).toByteArray()
-                out.write(dat).also { log("Sending packet 1002.") }
+            handle {
+                val dat = Packets.find(1002).encode("Hello world!").toByteArray()
+                outputStream.write(dat).also { log.info("Sending packet 102.") }
 
-                return@handle data
+                this.name = "Hello"
             }
         }
 
         register {
-            id = 1002
+            id = 102
 
-            val name = string(10)
+            val b = boolean()
+            val i = int()
+            val s = string()
+            val c = char()
         }
-    }.also { Yak.start(port = 2424) }
+    }
+
+    Yak.start(port = 2424)
 }

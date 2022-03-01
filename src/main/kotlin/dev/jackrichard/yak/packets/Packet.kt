@@ -1,5 +1,6 @@
 package dev.jackrichard.yak.packets
 
+import dev.jackrichard.yak.net.ClientContext
 import dev.jackrichard.yak.packets.types.*
 import java.nio.ByteBuffer
 
@@ -8,27 +9,47 @@ import java.nio.ByteBuffer
  * Not to be used directly. Use DSL function, packet, to create instances of packet class.
  */
 open class Packet {
-    private val segments: MutableList<ByteableType<*>> = mutableListOf()
-    private lateinit var handler: PacketHandler
+    internal val segments: MutableList<ByteableType<*>> = mutableListOf()
+    private lateinit var handler: ClientContext.() -> Unit
+
+    /**
+     * A packet identifier must be unique from any other packet identifier defined in this Yak instance.
+     * The default is -1, but do not use this.
+     */
     var id: Int = -1
 
-    fun length() : Int {
-        var length = 0
-        segments.forEach { length += it.length }
-        return length
-    }
+    /**
+     * The packet length is determined by a sum of the bytes needed for each data type defined.
+     *
+     * @return packet size in bytes
+     */
+    fun length() : Int = segments.sumOf { it.length }
 
-    fun string(length: Int = 16) = ByteableString(length).also { segments.add(it) }
-    fun char() = ByteableChar().also { segments.add(it) }
-    fun int() = ByteableInt().also { segments.add(it) }
-    fun boolean() = ByteableBoolean().also { segments.add(it) }
+    /**
+     * Defines the handler that will receive the active context and packet data when this specific packet type is received.
+     *
+     * @param func ClientContext DSL block
+     */
+    fun handle(func: ClientContext.() -> Unit) { handler = func }
 
-    fun handle(func: PacketHandler) { handler = func }
+    /**
+     * Encodes data passed as arguments to the structure of the packet. This data *must* be in the order that the segments are defined in.
+     *
+     * @param segs the packet data to be encoded
+     *
+     * @return an encoded list of bytes
+     */
     fun encode(vararg segs: Any) : List<Byte> = mutableListOf<Byte>().also { list ->
         list.addAll(ByteBuffer.allocate(4).also { it.putInt(id) }.array().toList())
         segments.zip(segs).forEach { list.addAll(it.first.encode(it.second)) }
     }
-    fun decode(data: Any, out: SocketOutputStream, logger: (String) -> Unit = { }, array: ByteArray, doneHandling: PacketHandler = handler) : Any {
+
+    /**
+     * Decodes the provided ByteArray and passes the data to the current handler for that packet type.
+     *
+     * @param array an array of bytes
+     */
+    fun decode(array: ByteArray) : ClientContext.() -> Unit {
         var currentBuffer = array.toList()
         val dataSegs = mutableListOf<Any>()
 
@@ -37,7 +58,7 @@ open class Packet {
             currentBuffer = currentBuffer.drop(it.length)
         }
 
-        return doneHandling(data, out, logger, segments.zip(dataSegs).toMap())
+        return handler
     }
 }
 

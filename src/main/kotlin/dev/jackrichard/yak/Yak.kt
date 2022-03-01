@@ -15,7 +15,7 @@ import kotlin.reflect.KClass
  * Run the `start()` function with the optional port parameter to open the socket and start the blocking service.
  */
 object Yak {
-    internal var configuration = Config()
+    private var configuration = Config()
     private val logger = Logger.getLogger("SERVER")
 
     /**
@@ -23,8 +23,6 @@ object Yak {
      * Stores the database configuration and session data that will be stored with each client connection.
      */
     class Config {
-        var sessionDataType: KClass<*> = Nothing::class
-
         fun register(block: Packet.() -> Unit) {
             val packet = Packet().also { it.block() }
             Packets.register(packet.id, packet)
@@ -35,11 +33,15 @@ object Yak {
      * Stores the database configuration and session data that will be stored with each client connection.
      * Also registers server packets through the DSL `packets {}` block.
      * Packets must have a unique ID set, via `id = 120` in the `packet {}` block.
+     *
+     * @param init accepts a Yak.Config block.
      */
     fun config(init: Config.() -> Unit) { configuration = Config().also(init) }
 
     /**
      * Blocking call to start SocKit services. Optional port parameter, default is 2424.
+     *
+     * @param port the port for the socket server. Default is 12345.
      */
     fun start(port: Int = 12345) {
         Yak.logger.info("Opening socket on port $port...")

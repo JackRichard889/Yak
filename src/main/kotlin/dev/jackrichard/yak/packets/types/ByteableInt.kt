@@ -1,5 +1,6 @@
 package dev.jackrichard.yak.packets.types
 
+import dev.jackrichard.yak.packets.Packet
 import java.nio.ByteBuffer
 
 /**
@@ -10,3 +11,5 @@ class ByteableInt : ByteableType<Int>() {
     override fun decode(bytes: List<Byte>): Int = ByteBuffer.wrap(bytes.toByteArray()).int
     override fun encode(data: Any): List<Byte> = ByteBuffer.allocate(4).also { it.putInt(data as Int) }.array().toList()
 }
+
+fun Packet.int() = ByteableInt().also { segments.add(it) }

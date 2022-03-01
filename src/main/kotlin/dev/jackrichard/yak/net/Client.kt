@@ -1,17 +1,14 @@
 package dev.jackrichard.yak.net
 
-import dev.jackrichard.yak.Yak
 import dev.jackrichard.yak.packets.Packets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.Socket
 import java.nio.ByteBuffer
 import java.util.logging.Logger
-import kotlin.reflect.full.createInstance
 
 suspend fun serveClient(identifier: Int, clientSocket: Socket) {
     val logger = Logger.getLogger("[T-$identifier]")
-    var persistentData = Yak.configuration.sessionDataType.createInstance()
 
     logger.info("Thread created! Opening streams...")
 
@@ -21,6 +18,8 @@ suspend fun serveClient(identifier: Int, clientSocket: Socket) {
     val inputStream = withContext(Dispatchers.IO) {
         clientSocket.getInputStream()
     }
+
+    val persistentData = ClientContext(outputStream = outputStream, log = logger)
 
     Delegator.incrementConnection()
 
@@ -39,12 +38,7 @@ suspend fun serveClient(identifier: Int, clientSocket: Socket) {
 
         Packets.find(ByteBuffer.wrap(packetID).int.also { logger.info("Received packet $it.") }).also {
             try {
-                persistentData = it.decode(
-                    persistentData,
-                    outputStream,
-                    logger::info,
-                    inputStream.readNBytes(it.length())
-                )
+                persistentData.also(it.decode(inputStream.readNBytes(it.length())))
             } catch (e: Exception) {
                 logger.severe(e.localizedMessage.toString())
                 clientSocket.close()
