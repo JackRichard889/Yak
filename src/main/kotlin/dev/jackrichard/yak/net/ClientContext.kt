@@ -1,5 +1,6 @@
 package dev.jackrichard.yak.net
 
+import dev.jackrichard.yak.packets.Packets
 import java.io.OutputStream
 import java.util.logging.Logger
 
@@ -8,4 +9,7 @@ import java.util.logging.Logger
  *
  * Use extension methods and properties to add data to the ClientContext object.
  */
-class ClientContext(val outputStream: OutputStream, val log: Logger)
+class ClientContext(private val outputStream: OutputStream, val log: Logger) {
+    fun sendPacket(id: Int, vararg args: Any) =
+        outputStream.write(Packets.find(id).encode(args))
+}

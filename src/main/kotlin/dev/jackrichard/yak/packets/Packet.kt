@@ -37,12 +37,12 @@ open class Packet {
      *
      * @param segs the packet data to be encoded
      *
-     * @return an encoded list of bytes
+     * @return an encoded ByteArray
      */
-    fun encode(vararg segs: Any) : List<Byte> = mutableListOf<Byte>().also { list ->
+    fun encode(vararg segs: Any) : ByteArray = mutableListOf<Byte>().also { list ->
         list.addAll(ByteBuffer.allocate(4).also { it.putInt(id) }.array().toList())
         segments.zip(segs).forEach { list.addAll(it.first.encode(it.second)) }
-    }
+    }.toByteArray()
 
     /**
      * Decodes the provided ByteArray and passes the data to the current handler for that packet type.

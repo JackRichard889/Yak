@@ -1,38 +1,56 @@
 import dev.jackrichard.yak.Yak
-import dev.jackrichard.yak.net.ClientContext
 import dev.jackrichard.yak.packets.Packets
-import dev.jackrichard.yak.packets.types.boolean
-import dev.jackrichard.yak.packets.types.char
-import dev.jackrichard.yak.packets.types.int
 import dev.jackrichard.yak.packets.types.string
+import java.net.Socket
+import java.nio.ByteBuffer
 import kotlin.concurrent.thread
 
-var ClientContext.name: String
-    get() = ""
-    set(value) {}
-
 fun main() {
+    print("Enter a message to relay: ")
+    val message = readLine()!!
+
     Yak.config {
         register {
             id = 101
 
-            val name = string(50)
+            val name = string()
 
             handle {
-                val dat = Packets.find(1002).encode("Hello world!").toByteArray()
-                outputStream.write(dat).also { log.info("Sending packet 102.") }
-
-                this.name = "Hello"
+                sendPacket(id = 102, "Hello, $name!")
             }
         }
 
         register {
             id = 102
 
-            val b = boolean()
-            val i = int()
-            val s = string()
-            val c = char()
+            val messaged = string()
+
+            handle {
+                println(messaged)
+            }
+        }
+    }
+
+    thread {
+        // Wait for server to be started, just in case.
+        Thread.sleep(4000)
+
+        // Connect to the socket.
+        val socket = Socket("localhost", 2424)
+
+        val out = socket.getOutputStream()
+        val inp = socket.getInputStream()
+
+        // Send packet with name data.
+        out.write(Packets.find(101).encode(message))
+
+        // Start listening loop.
+        while (socket.isConnected) {
+            val packetID = inp.readNBytes(4)
+            Packets.find(ByteBuffer.wrap(packetID).int).also {
+                // Decode and handle received packets.
+                it.decode(inp.readNBytes(it.length()))
+            }
         }
     }
 
